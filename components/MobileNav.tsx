@@ -14,6 +14,7 @@ import { sidebarLinks } from '@/constants';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+import Footer from './Footer';
 
 const MobileNav = ({ user }: MobileNavProps) => {
     const pathname = usePathname();
@@ -80,7 +81,7 @@ const MobileNav = ({ user }: MobileNavProps) => {
                                     USER
                                 </nav>
                             </SheetClose>
-                            FOOTER
+                            <Footer user={user} type="mobile" />
                         </div>
 
                         {sidebarLinks.map((item) => {
@@ -108,6 +109,7 @@ const MobileNav = ({ user }: MobileNavProps) => {
                                 </Link>
                             );
                         })}
+
                     </nav>
                 </SheetContent>
             </Sheet>

@@ -163,7 +163,7 @@ export const getTransactions = async ({
         });
 
         const data = response.data;
-        
+
         if (data.added && Array.isArray(data.added)) {
             transactions = data.added.map((transaction) => ({
                 id: transaction.transaction_id,

@@ -6,6 +6,10 @@ import { getLoggedInUser } from '@/lib/actions/user.actions';
 import { formatAmount } from '@/lib/utils';
 import React from 'react'
 
+interface SearchParamProps {
+    searchParams: { [key: string]: string | string[] | undefined }
+}
+
 const TransactionHistory = async ({ searchParams: { id, page } }: SearchParamProps) => {
     const currentPage = Number(page as string) || 1;
     const loggedIn = await getLoggedInUser();
@@ -19,7 +23,6 @@ const TransactionHistory = async ({ searchParams: { id, page } }: SearchParamPro
     const appwriteItemId = (id as string) || accountsData[0]?.appwriteItemId;
 
     const account = await getAccount({ appwriteItemId })
-
 
     const rowsPerPage = 10;
     const totalPages = Math.ceil(account?.transactions.length / rowsPerPage);

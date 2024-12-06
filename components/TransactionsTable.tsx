@@ -90,9 +90,9 @@ const TransactionsTable = ({ transactions }: TransactionTableProps) => {
                             </TableCell>
 
                             <TableCell className="pl-2 pr-10">
-                                <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-[#ECFDF3] border border-[#ABEFC6]">
+                                <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-[#ECFDF3] border border-[#ABEFC6] w-fit">
                                     <div className="size-2 rounded-full bg-[#039855]" />
-                                    <p className="text-[12px] font-medium text-[#027A48]">{status}</p>
+                                    <p className="text-[12px] font-medium text-[#027A48] whitespace-nowrap">{status}</p>
                                 </div>
                             </TableCell>
 

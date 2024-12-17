@@ -5,6 +5,7 @@ import { createAdminClient, createSessionClient } from "../appwrite";
 import { cookies } from "next/headers";
 import { encryptId, extractCustomerIdFromUrl, parseStringify } from "../utils";
 import { CountryCode, ProcessorTokenCreateRequest, ProcessorTokenCreateRequestProcessorEnum, Products } from "plaid";
+
 import { plaidClient } from '@/lib/plaid';
 import { revalidatePath } from "next/cache";
 import { addFundingSource, createDwollaCustomer } from "./dwolla.actions";
@@ -31,11 +32,9 @@ export const getUserInfo = async ({ userId }: getUserInfoProps) => {
     }
 }
 
-
 export const signIn = async ({ email, password }: signInProps) => {
     try {
         const { account } = await createAdminClient();
-
         const session = await account.createEmailPasswordSession(email, password);
 
         (await cookies()).set("appwrite-session", session.secret, {
@@ -47,7 +46,6 @@ export const signIn = async ({ email, password }: signInProps) => {
 
         const user = await getUserInfo({ userId: session.userId })
 
-
         return parseStringify(user);
     } catch (error) {
         console.error('Error', error);
@@ -55,18 +53,21 @@ export const signIn = async ({ email, password }: signInProps) => {
 }
 
 export const signUp = async ({ password, ...userData }: SignUpParams) => {
-
     const { email, firstName, lastName } = userData;
 
     let newUserAccount;
 
-
     try {
         const { account, database } = await createAdminClient();
 
-        newUserAccount = await account.create(ID.unique(), email, password, `${firstName} ${lastName}`);
+        newUserAccount = await account.create(
+            ID.unique(),
+            email,
+            password,
+            `${firstName} ${lastName}`
+        );
 
-        if (!newUserAccount) throw new Error("Error creating user")
+        if (!newUserAccount) throw new Error('Error creating user')
 
         const dwollaCustomerUrl = await createDwollaCustomer({
             ...userData,
@@ -104,7 +105,6 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
     }
 }
 
-
 export async function getLoggedInUser() {
     try {
         const { account } = await createSessionClient();
@@ -121,15 +121,13 @@ export async function getLoggedInUser() {
 
 export const logoutAccount = async () => {
     try {
-        const { account } = await createAdminClient();
+        const { account } = await createSessionClient();
 
         (await cookies()).delete('appwrite-session');
 
         await account.deleteSession('current');
-
     } catch (error) {
         return null;
-
     }
 }
 
@@ -143,12 +141,11 @@ export const createLinkToken = async (user: User) => {
             products: ['auth'] as Products[],
             language: 'en',
             country_codes: ['US'] as CountryCode[],
-
         }
 
-        const reponse = await plaidClient.linkTokenCreate(tokenParams);
+        const response = await plaidClient.linkTokenCreate(tokenParams);
 
-        return parseStringify({ linkToken: reponse.data.link_token })
+        return parseStringify({ linkToken: response.data.link_token })
     } catch (error) {
         console.log(error);
     }
@@ -161,7 +158,6 @@ export const createBankAccount = async ({
     accessToken,
     fundingSourceUrl,
     sharableId,
-
 }: createBankAccountProps) => {
     try {
         const { database } = await createAdminClient();
@@ -191,6 +187,7 @@ export const exchangePublicToken = async ({
     user,
 }: exchangePublicTokenProps) => {
     try {
+        // Exchange public token for access token and item ID
         const response = await plaidClient.itemPublicTokenExchange({
             public_token: publicToken,
         });
@@ -198,12 +195,14 @@ export const exchangePublicToken = async ({
         const accessToken = response.data.access_token;
         const itemId = response.data.item_id;
 
-        const accountResponse = await plaidClient.accountsGet({
+        // Get account information from Plaid using the access token
+        const accountsResponse = await plaidClient.accountsGet({
             access_token: accessToken,
         });
 
-        const accountData = accountResponse.data.accounts[0];
+        const accountData = accountsResponse.data.accounts[0];
 
+        // Create a processor token for Dwolla using the access token and account ID
         const request: ProcessorTokenCreateRequest = {
             access_token: accessToken,
             account_id: accountData.account_id,
@@ -213,14 +212,17 @@ export const exchangePublicToken = async ({
         const processorTokenResponse = await plaidClient.processorTokenCreate(request);
         const processorToken = processorTokenResponse.data.processor_token;
 
+        // Create a funding source URL for the account using the Dwolla customer ID, processor token, and bank name
         const fundingSourceUrl = await addFundingSource({
             dwollaCustomerId: user.dwollaCustomerId,
             processorToken,
             bankName: accountData.name,
         });
 
+        // If the funding source URL is not created, throw an error
         if (!fundingSourceUrl) throw Error;
 
+        // Create a bank account using the user ID, item ID, account ID, access token, funding source URL, and shareableId ID
         await createBankAccount({
             userId: user.$id,
             bankId: itemId,
@@ -230,15 +232,15 @@ export const exchangePublicToken = async ({
             sharableId: encryptId(accountData.account_id),
         });
 
+        // Revalidate the path to reflect the changes
         revalidatePath("/");
 
+        // Return a success message
         return parseStringify({
-            publicTokenExchange: "Complete",
+            publicTokenExchange: "complete",
         });
-
-
     } catch (error) {
-        console.error("An error occured while creating exchanging token: ", error);
+        console.error("An error occurred while creating exchanging token:", error);
     }
 }
 
@@ -291,4 +293,3 @@ export const getBankByAccountId = async ({ accountId }: getBankByAccountIdProps)
         console.log(error)
     }
 }
-

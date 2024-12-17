@@ -1,9 +1,19 @@
+"use client";
+
 import Link from 'next/link'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BankTabItem } from './BankTabItem'
 import BankInfo from './BankInfo'
 import TransactionsTable from './TransactionsTable'
 import { Pagination } from './Pagination'
+
+
+interface RecentTransactionsProps {
+    accounts: Account[];
+    transactions?: Transaction[];
+    appwriteItemId?: string;
+    page?: number;
+}
 
 const RecentTransactions = ({
     accounts,
@@ -19,7 +29,11 @@ const RecentTransactions = ({
 
     const currentTransactions = transactions.slice(
         indexOfFirstTransaction, indexOfLastTransaction
-    )
+    );
+
+    if (!accounts || accounts.length === 0) {
+        return null;
+    }
 
     return (
         <section className="recent-transactions">
@@ -33,12 +47,14 @@ const RecentTransactions = ({
                 </Link>
             </header>
 
-            <Tabs defaultValue={appwriteItemId} className="w-full">
+            <Tabs defaultValue={appwriteItemId || accounts[0]?.appwriteItemId} className="w-full">
                 <TabsList className="recent-transactions-tablist">
-                    {accounts.map((account: Account) => (
-                        <TabsTrigger key={account.id} value={account.appwriteItemId}>
+                    {accounts.map((account) => (
+                        <TabsTrigger
+                            key={account.appwriteItemId}
+                            value={account.appwriteItemId}
+                        >
                             <BankTabItem
-                                key={account.id}
                                 account={account}
                                 appwriteItemId={appwriteItemId}
                             />
@@ -46,10 +62,10 @@ const RecentTransactions = ({
                     ))}
                 </TabsList>
 
-                {accounts.map((account: Account) => (
+                {accounts.map((account) => (
                     <TabsContent
                         value={account.appwriteItemId}
-                        key={account.id}
+                        key={account.appwriteItemId}
                         className="space-y-4"
                     >
                         <BankInfo
@@ -58,8 +74,9 @@ const RecentTransactions = ({
                             type="full"
                         />
 
-                        <TransactionsTable transactions={transactions} />
-
+                        <TransactionsTable
+                            transactions={currentTransactions}
+                        />
 
                         {totalPages > 1 && (
                             <div className="my-4 w-full">

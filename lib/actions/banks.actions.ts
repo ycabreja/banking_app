@@ -115,7 +115,7 @@ export const getAccount = async ({ appwriteItemId }: getAccountProps) => {
         };
 
         // sort transactions by date such that the most recent transaction is first
-        const allTransactions = [...transactions, ...transferTransactions].sort(
+        const allTransactions = [...(transactions || []), ...transferTransactions].sort(
             (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
         );
 
@@ -154,15 +154,18 @@ export const getTransactions = async ({
     let transactions: any = [];
 
     try {
-        // Iterate through each page of new transaction updates for item
-        while (hasMore) {
-            const response = await plaidClient.transactionsSync({
-                access_token: accessToken,
-            });
+        // Get initial transactions
+        const response = await plaidClient.transactionsSync({
+            access_token: accessToken,
+            options: {
+                include_personal_finance_category: true
+            }
+        });
 
-            const data = response.data;
+        const data = response.data;
 
-            transactions = response.data.added.map((transaction) => ({
+        if (data.added && Array.isArray(data.added)) {
+            transactions = data.added.map((transaction) => ({
                 id: transaction.transaction_id,
                 name: transaction.name,
                 paymentChannel: transaction.payment_channel,
@@ -174,12 +177,18 @@ export const getTransactions = async ({
                 date: transaction.date,
                 image: transaction.logo_url,
             }));
-
-            hasMore = data.has_more;
         }
 
+        hasMore = data.has_more;
+
         return parseStringify(transactions);
-    } catch (error) {
-        console.error("An error occurred while getting the accounts:", error);
+    } catch (error: any) {
+        console.error("An error occurred while getting the transactions:", {
+            message: error.message,
+            details: error.response?.data,
+            status: error.response?.status,
+            error
+        });
+        return parseStringify([]);
     }
 };
